@@ -28,6 +28,25 @@ def test_adb_devices() -> None:
     assert devices[1].state == "offline"
 
 
+def test_adb_devices_accept_space_aligned_output_and_ignore_noise() -> None:
+    text = (
+        "* daemon started successfully *\n"
+        "List of devices attached\n"
+        "RQ8M608LY0A        device usb:2-1.3 product:aosp_beyond2lte "
+        "model:SM_G975F device:beyond2lte transport_id:1\n"
+        "????????????       no permissions (user in plugdev group)\n"
+        "error: unrelated adb noise\n"
+    )
+    devices = Backend.parse_adb_devices(text)
+    assert [(device.serial, device.state) for device in devices] == [
+        ("RQ8M608LY0A", "device"),
+        ("????????????", "no permissions"),
+    ]
+    assert devices[0].model == "SM_G975F"
+    assert devices[0].product == "aosp_beyond2lte"
+    assert devices[0].device == "beyond2lte"
+
+
 def test_fastboot_devices_deduplicate_and_ignore_noise() -> None:
     devices = Backend.parse_fastboot_devices(
         "ABC123\tfastboot\nABC123 fastboot\nerror: waiting for device\nXYZ bootloader\n"
