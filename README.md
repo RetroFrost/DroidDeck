@@ -1,8 +1,9 @@
-# DroidDeck GTK 0.2.0
+# DroidDeck GTK 0.3.0
 
 DroidDeck is a native GTK 4 and Libadwaita desktop toolbox for Android development, debugging, device management, Fastboot, and protected Samsung Heimdall operations.
 
-Version 0.2.0 replaces the original fixed GTK layout with an adaptive Libadwaita application and includes a full safety and reliability review.
+Version 0.3.0 fixes ADB device discovery when `adb devices -l` aligns its
+columns with spaces rather than a literal tab.
 
 ## Requirements
 
@@ -10,18 +11,19 @@ Version 0.2.0 replaces the original fixed GTK layout with an adaptive Libadwaita
 - GTK 4.10 or newer
 - Libadwaita 1.5 or newer
 - PyGObject (`python3-gi` on Ubuntu/Debian)
+
 # Installing (ez method:)
 
-```
+```bash
 sudo apt install droiddeck
-
 ```
+
 Run it with:
 
-```
+```bash
 droiddeck-gtk
-
 ```
+
 Ubuntu/Debian dependencies:
 
 ```bash
