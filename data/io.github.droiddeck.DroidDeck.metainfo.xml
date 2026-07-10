@@ -22,6 +22,11 @@
     <category>Utility</category>
   </categories>
   <releases>
+    <release version="0.3.0" date="2026-07-10">
+      <description>
+        <p>Urgent fix for ADB device output aligned with spaces.</p>
+      </description>
+    </release>
     <release version="0.2.0" date="2026-07-09">
       <description>
         <p>Modern Libadwaita redesign and full safety-focused code review.</p>
