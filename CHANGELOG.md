@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 — 2026-07-10
+
+### Urgent ADB detection fix
+
+- Fixed ADB device detection for `adb devices -l` implementations that align
+  columns with spaces instead of a literal tab.
+- Added coverage for space-aligned devices, `no permissions` devices, and ADB
+  daemon/error noise.
+
 ## 0.2.0 — 2026-07-09
 
 ### Modern GTK / GNOME interface
@@ -27,8 +36,6 @@
 
 ### Reliability fixes
 
-- Fixed ADB device detection for `adb devices -l` implementations that align
-  columns with spaces instead of a literal tab.
 - Fixed installed-launcher symlink resolution; user installs now find the packaged Python source correctly.
 - Consolidated GTK dependency checks into a graceful Python entry point shared by source, installed, and wheel launches.
 - Made `--version` work without GTK/PyGObject installed.
