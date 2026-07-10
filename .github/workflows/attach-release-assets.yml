@@ -1,0 +1,113 @@
+name: Attach updated release assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .droiddeck/release.json
+
+permissions:
+  contents: write
+
+concurrency:
+  group: droiddeck-release-assets
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read and validate release request
+        id: release
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          manifest = json.loads(Path(".droiddeck/release.json").read_text())
+          tag = manifest["tag"]
+          version = manifest["version"]
+          if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?", tag):
+              raise SystemExit(f"Invalid tag: {tag!r}")
+          if tag != f"v{version}":
+              raise SystemExit("Release tag and version do not match")
+
+          pyproject = Path("pyproject.toml").read_text()
+          if f'version = "{version}"' not in pyproject:
+              raise SystemExit("pyproject.toml has not been updated to the release version")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"tag={tag}", file=output)
+              print(f"version={version}", file=output)
+          PY
+
+      - name: Verify target release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
+
+      - name: Install build tools
+        run: python -m pip install pytest ruff build
+
+      - name: Test updated source
+        run: |
+          PYTHONPATH=src pytest -q
+          ruff check src tests
+          ruff format --check src tests
+          PYTHONPATH=src python -m compileall -q src tests
+          bash -n droiddeck-gtk install.sh uninstall.sh
+
+      - name: Build release assets from updated main
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          python -m build --wheel
+          git archive \
+            --format=zip \
+            --prefix="droiddeck-gtk-${VERSION}/" \
+            --output="dist/droiddeck-gtk-${VERSION}.zip" \
+            HEAD
+          git archive \
+            --format=tar \
+            --prefix="droiddeck-gtk-${VERSION}/" \
+            HEAD | gzip -9 > "dist/droiddeck-gtk-${VERSION}.tar.gz"
+          (
+            cd dist
+            sha256sum \
+              "droiddeck-gtk-${VERSION}.zip" \
+              "droiddeck-gtk-${VERSION}.tar.gz" \
+              "droiddeck_gtk-${VERSION}-py3-none-any.whl" \
+              > "droiddeck-gtk-${VERSION}.sha256"
+          )
+
+      - name: Attach assets to existing final release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          gh release upload "$TAG" \
+            "dist/droiddeck-gtk-${VERSION}.zip" \
+            "dist/droiddeck-gtk-${VERSION}.tar.gz" \
+            "dist/droiddeck_gtk-${VERSION}-py3-none-any.whl" \
+            "dist/droiddeck-gtk-${VERSION}.sha256" \
+            --clobber \
+            --repo "$GITHUB_REPOSITORY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: droiddeck-${{ steps.release.outputs.version }}
+          path: dist/*
+

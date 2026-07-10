@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=DroidDeck
+GenericName=Android Device Toolbox
+Comment=Develop, debug, diagnose, and safely modify Android devices
+Exec=@EXEC@
+Icon=io.github.droiddeck.DroidDeck
+Terminal=false
+Categories=Development;Utility;
+Keywords=Android;ADB;Fastboot;Heimdall;Samsung;Logcat;
+StartupNotify=true

@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install development tools
+        run: python -m pip install pytest ruff build
+      - name: Run tests
+        run: PYTHONPATH=src pytest -q
+      - name: Check formatting and lint
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+      - name: Check Python and shell syntax
+        run: |
+          PYTHONPATH=src python -m compileall -q src tests
+          bash -n droiddeck-gtk install.sh uninstall.sh
+      - name: Build package
+        run: python -m build
+

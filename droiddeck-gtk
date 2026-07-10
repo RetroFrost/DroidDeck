@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+SOURCE=${BASH_SOURCE[0]}
+while [[ -L "$SOURCE" ]]; do
+    SOURCE_DIR=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+    TARGET=$(readlink -- "$SOURCE")
+    if [[ "$TARGET" == /* ]]; then
+        SOURCE=$TARGET
+    else
+        SOURCE=$SOURCE_DIR/$TARGET
+    fi
+done
+ROOT=$(CDPATH= cd -- "$(dirname -- "$SOURCE")" && pwd)
+export PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}"
+PYTHON_BIN=${DROIDDECK_PYTHON:-/usr/bin/python3}
+if [[ ! -x "$PYTHON_BIN" ]]; then
+    PYTHON_BIN=$(command -v python3 || true)
+fi
+if [[ -z "$PYTHON_BIN" ]]; then
+    printf '%s\n' 'DroidDeck needs Python 3.10 or newer.' >&2
+    exit 1
+fi
+exec "$PYTHON_BIN" -m droiddeck_gtk "$@"

@@ -1,0 +1,93 @@
+name: Bootstrap 0.2.0 release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether the initial release exists
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.2.0 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "create=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "create=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.create == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        if: steps.check.outputs.create == 'true'
+        run: python -m pip install pytest ruff build
+
+      - name: Test initial source
+        if: steps.check.outputs.create == 'true'
+        run: |
+          PYTHONPATH=src pytest -q
+          ruff check src tests
+          ruff format --check src tests
+          PYTHONPATH=src python -m compileall -q src tests
+          bash -n droiddeck-gtk install.sh uninstall.sh
+
+      - name: Build initial assets
+        if: steps.check.outputs.create == 'true'
+        run: |
+          python -m build --wheel
+          git archive \
+            --format=zip \
+            --prefix=droiddeck-gtk-0.2.0/ \
+            --output=dist/droiddeck-gtk-0.2.0.zip \
+            HEAD
+          git archive \
+            --format=tar \
+            --prefix=droiddeck-gtk-0.2.0/ \
+            HEAD | gzip -9 > dist/droiddeck-gtk-0.2.0.tar.gz
+          (
+            cd dist
+            sha256sum \
+              droiddeck-gtk-0.2.0.zip \
+              droiddeck-gtk-0.2.0.tar.gz \
+              droiddeck_gtk-0.2.0-py3-none-any.whl \
+              > droiddeck-gtk-0.2.0.sha256
+          )
+          python - <<'PY'
+          import re
+          from pathlib import Path
+
+          changelog = Path("CHANGELOG.md").read_text()
+          section = re.search(r"^## 0\.2\.0.*?(?=^## |\Z)", changelog, re.M | re.S)
+          if section is None:
+              raise SystemExit("CHANGELOG.md has no 0.2.0 section")
+          Path("release-notes-0.2.0.md").write_text(section.group(0).rstrip() + "\n")
+          PY
+
+      - name: Create initial tag and release
+        if: steps.check.outputs.create == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v0.2.0 \
+            dist/droiddeck-gtk-0.2.0.zip \
+            dist/droiddeck-gtk-0.2.0.tar.gz \
+            dist/droiddeck_gtk-0.2.0-py3-none-any.whl \
+            dist/droiddeck-gtk-0.2.0.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "DroidDeck GTK 0.2.0" \
+            --notes-file release-notes-0.2.0.md
+

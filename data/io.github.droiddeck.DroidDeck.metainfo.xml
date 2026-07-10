@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.droiddeck.DroidDeck</id>
+  <name>DroidDeck</name>
+  <summary>Android development and device-modification toolbox</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <developer id="io.github.droiddeck">
+    <name>FrostStraw and contributors</name>
+  </developer>
+  <description>
+    <p>DroidDeck is a native GTK 4 and Libadwaita toolbox for ADB, Fastboot, Logcat, diagnostics, and protected Samsung Heimdall operations.</p>
+    <p>Dangerous flash, erase, format, lock, unlock, and repartition operations are gated by Expert mode, command previews, and typed confirmations.</p>
+  </description>
+  <launchable type="desktop-id">io.github.droiddeck.DroidDeck.desktop</launchable>
+  <provides>
+    <binary>droiddeck-gtk</binary>
+  </provides>
+  <content_rating type="oars-1.1" />
+  <categories>
+    <category>Development</category>
+    <category>Utility</category>
+  </categories>
+  <releases>
+    <release version="0.2.0" date="2026-07-09">
+      <description>
+        <p>Modern Libadwaita redesign and full safety-focused code review.</p>
+      </description>
+    </release>
+  </releases>
+</component>

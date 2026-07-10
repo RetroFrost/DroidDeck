@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "droiddeck-gtk"
+version = "0.2.0"
+description = "Native GTK 4 and Libadwaita Android development toolbox"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "FrostStraw and contributors"}]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: X11 Applications :: GTK",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+]
+
+[project.scripts]
+droiddeck-gtk = "droiddeck_gtk.launcher:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
