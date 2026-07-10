@@ -525,6 +525,18 @@ class Backend:
     PARTITION_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.+-]{0,127}\Z")
     FILESYSTEM_TOKEN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.+-]{0,63}\Z")
     PACKAGE_TOKEN = re.compile(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)+\Z")
+    ADB_DEVICE_STATES = {
+        "authorizing",
+        "bootloader",
+        "connecting",
+        "device",
+        "host",
+        "offline",
+        "recovery",
+        "rescue",
+        "sideload",
+        "unauthorized",
+    }
 
     def __init__(self, config: Config, runner: Runner) -> None:
         self.config = config
@@ -572,20 +584,27 @@ class Backend:
     def parse_adb_devices(text: str) -> list[AdbDevice]:
         devices: list[AdbDevice] = []
         for raw in text.splitlines():
-            if (
-                not raw.strip()
-                or raw.startswith("List of devices attached")
-                or "\t" not in raw
-            ):
+            line = raw.strip()
+            if not line or line.startswith("List of devices attached"):
                 continue
-            serial, rest = raw.split("\t", 1)
-            serial = serial.strip()
-            if not serial:
+
+            tokens = line.split()
+            if len(tokens) < 2:
                 continue
-            tokens = rest.split()
-            state = tokens[0] if tokens else "unknown"
+
+            serial = tokens[0]
+            if tokens[1:3] == ["no", "permissions"]:
+                state = "no permissions"
+                details = tokens[3:]
+            elif tokens[1].lower() in Backend.ADB_DEVICE_STATES:
+                state = tokens[1].lower()
+                details = tokens[2:]
+            else:
+                # Ignore daemon messages, errors, and other command noise.
+                continue
+
             fields: dict[str, str] = {}
-            for token in tokens[1:]:
+            for token in details:
                 if ":" in token:
                     key, value = token.split(":", 1)
                     fields[key] = value
