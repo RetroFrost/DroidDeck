@@ -27,6 +27,8 @@
 
 ### Reliability fixes
 
+- Fixed ADB device detection for `adb devices -l` implementations that align
+  columns with spaces instead of a literal tab.
 - Fixed installed-launcher symlink resolution; user installs now find the packaged Python source correctly.
 - Consolidated GTK dependency checks into a graceful Python entry point shared by source, installed, and wheel launches.
 - Made `--version` work without GTK/PyGObject installed.
