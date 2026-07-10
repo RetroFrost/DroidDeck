@@ -52,33 +52,12 @@ jobs:
               print(f"version={version}", file=output)
           PY
 
-      - name: Ensure newest release exists upfront
+      - name: Verify the user-created release exists
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.release.outputs.tag }}
-          VERSION: ${{ steps.release.outputs.version }}
         run: |
-          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            python - <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          version = os.environ["VERSION"]
-          changelog = Path("CHANGELOG.md").read_text()
-          section = re.search(
-              rf"^## {re.escape(version)}.*?(?=^## |\Z)", changelog, re.M | re.S
-          )
-          if section is None:
-              raise SystemExit(f"CHANGELOG.md has no {version} section")
-          Path("release-notes.md").write_text(section.group(0).rstrip() + "\n")
-          PY
-            gh release create "$TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "DroidDeck GTK ${VERSION}" \
-              --notes-file release-notes.md
-          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
 
       - name: Install build tools
         run: python -m pip install pytest ruff build
