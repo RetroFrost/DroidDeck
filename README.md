@@ -10,7 +10,18 @@ Version 0.2.0 replaces the original fixed GTK layout with an adaptive Libadwaita
 - GTK 4.10 or newer
 - Libadwaita 1.5 or newer
 - PyGObject (`python3-gi` on Ubuntu/Debian)
+# Installing (ez method:)
 
+```
+sudo apt install droiddeck
+
+```
+Run it with:
+
+```
+droiddeck-gtk
+
+```
 Ubuntu/Debian dependencies:
 
 ```bash
