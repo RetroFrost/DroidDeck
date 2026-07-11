@@ -1,0 +1,169 @@
+name: Implement user-created v0.4.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/implement-v0.4.0.yml
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Apply v0.4.0 changelog
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          page_path = Path("src/droiddeck_gtk/pages_adb.py")
+          text = page_path.read_text()
+
+          marker = '''        wireless = Section(
+              "Wireless ADB", "Pair or connect to Android's wireless debugging service."
+          )
+'''
+          sideload_ui = '''        sideload = Section(
+              "ADB sideload",
+              "Install a signed OTA or ROM ZIP while the selected device is in recovery sideload mode.",
+          )
+          warning = Gtk.Label(
+              label=(
+                  "The package is sent directly with adb sideload. Verify that it is intended "
+                  "for your exact device before continuing."
+              ),
+              xalign=0,
+              wrap=True,
+          )
+          warning.add_css_class("dim-label")
+          sideload.append(warning)
+          choose_sideload = ActionButton(
+              "Choose ZIP and sideload", "document-send-symbolic", suggested=True
+          )
+          choose_sideload.connect("clicked", lambda _b: self.choose_adb_sideload())
+          sideload.append(button_row(choose_sideload))
+          box.append(sideload)
+
+'''
+          if "def choose_adb_sideload" not in text:
+              if marker not in text:
+                  raise SystemExit("Could not locate ADB Tools insertion point")
+              text = text.replace(marker, sideload_ui + marker, 1)
+
+          method_marker = '''    def run_shell_command(self) -> None:
+'''
+          sideload_method = '''    def choose_adb_sideload(self) -> None:
+          choose_file(
+              self,
+              "Select sideload ZIP",
+              self.confirm_adb_sideload,
+              patterns=["*.zip"],
+          )
+
+      def confirm_adb_sideload(self, path: Path) -> None:
+          typed_confirm(
+              self,
+              "Sideload update package",
+              (
+                  "The selected device must already be in recovery sideload mode. "
+                  "DroidDeck cannot verify that this package belongs to your device.\\n\\n"
+                  f"Package: {path}"
+              ),
+              f"SIDELOAD {path.name}",
+              lambda: self.run_adb(
+                  "sideload",
+                  str(path),
+                  destructive=True,
+                  exclusive="adb-sideload",
+              ),
+          )
+
+'''
+          if "def choose_adb_sideload" not in text:
+              raise SystemExit("Sideload UI insertion failed")
+          if "def confirm_adb_sideload" not in text:
+              if method_marker not in text:
+                  raise SystemExit("Could not locate ADB method insertion point")
+              text = text.replace(method_marker, sideload_method + method_marker, 1)
+          page_path.write_text(text)
+
+          pyproject = Path("pyproject.toml")
+          pyproject.write_text(pyproject.read_text().replace('version = "0.3.0"', 'version = "0.4.0"'))
+
+          init = Path("src/droiddeck_gtk/__init__.py")
+          init.write_text(re.sub(r'__version__\s*=\s*"[^"]+"', '__version__ = "0.4.0"', init.read_text()))
+
+          readme = Path("README.md")
+          readme_text = readme.read_text()
+          readme_text = readme_text.replace("# DroidDeck GTK 0.3.0", "# DroidDeck GTK 0.4.0")
+          readme_text = re.sub(
+              r"Version 0\.3\.0 fixes ADB device discovery when `adb devices -l` aligns its\ncolumns with spaces rather than a literal tab\.\n",
+              "Version 0.4.0 adds protected ADB sideload controls to the ADB Tools page for sending signed OTA or ROM ZIP packages from recovery sideload mode.\n",
+              readme_text,
+          )
+          adb_bullet = "- Protected ADB sideload ZIP selection with exact typed confirmation and per-device targeting\n"
+          anchor = "- Android/recovery/bootloader/fastbootd/Samsung Download Mode reboots\n"
+          if adb_bullet not in readme_text:
+              readme_text = readme_text.replace(anchor, adb_bullet + anchor)
+          readme.write_text(readme_text)
+
+          changelog = Path("CHANGELOG.md")
+          changelog_text = changelog.read_text()
+          section = "## 0.4.0 - 2026-07-11\n\n- Added protected ADB sideload ZIP selection and execution to the ADB Tools page.\n- Requires exact typed confirmation before sending a package.\n- Targets only the selected ADB device and blocks overlapping sideload operations.\n\n"
+          if not re.search(r"^## 0\.4\.0\b", changelog_text, re.M):
+              heading, sep, rest = changelog_text.partition("\n")
+              changelog_text = heading + "\n\n" + section + rest.lstrip("\n") if sep else "# Changelog\n\n" + section + changelog_text
+          changelog.write_text(changelog_text)
+
+          meta = Path("data/io.github.droiddeck.DroidDeck.metainfo.xml")
+          if meta.exists():
+              meta_text = meta.read_text()
+              if 'version="0.4.0"' not in meta_text:
+                  meta_text = meta_text.replace(
+                      "<releases>",
+                      '<releases>\n    <release version="0.4.0" date="2026-07-11">\n      <description><p>Adds protected ADB sideload controls to the ADB Tools page.</p></description>\n    </release>',
+                      1,
+                  )
+              meta.write_text(meta_text)
+
+          manifest = Path(".droiddeck/release.json")
+          manifest.parent.mkdir(exist_ok=True)
+          manifest.write_text(json.dumps({"tag": "v0.4.0", "version": "0.4.0"}, indent=2) + "\n")
+
+          test_path = Path("tests/test_release_v040.py")
+          test_path.write_text('''from pathlib import Path\n\n\ndef test_v040_adb_sideload_is_present() -> None:\n    source = Path("src/droiddeck_gtk/pages_adb.py").read_text()\n    assert "Choose ZIP and sideload" in source\n    assert '"sideload",' in source\n    assert 'exclusive="adb-sideload"' in source\n    assert "typed_confirm(" in source\n''')
+          PY
+
+      - name: Install build tools
+        run: python -m pip install pytest ruff build
+
+      - name: Validate implementation
+        run: |
+          PYTHONPATH=src pytest -q
+          ruff check src tests
+          ruff format --check src tests
+          PYTHONPATH=src python -m compileall -q src tests
+          bash -n droiddeck-gtk install.sh uninstall.sh
+          python -m build
+
+      - name: Commit implementation to main
+        run: |
+          rm .github/workflows/implement-v0.4.0.yml
+          git config user.name "DroidDeck Release Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Implement DroidDeck GTK v0.4.0 ADB sideload"
+          git push origin main
