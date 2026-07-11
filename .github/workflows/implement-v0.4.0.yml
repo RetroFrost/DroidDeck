@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/implement-v0.4.0.yml
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -66,30 +67,30 @@ jobs:
           method_marker = '''    def run_shell_command(self) -> None:
 '''
           sideload_method = '''    def choose_adb_sideload(self) -> None:
-          choose_file(
-              self,
-              "Select sideload ZIP",
-              self.confirm_adb_sideload,
-              patterns=["*.zip"],
-          )
+        choose_file(
+            self,
+            "Select sideload ZIP",
+            self.confirm_adb_sideload,
+            patterns=["*.zip"],
+        )
 
-      def confirm_adb_sideload(self, path: Path) -> None:
-          typed_confirm(
-              self,
-              "Sideload update package",
-              (
-                  "The selected device must already be in recovery sideload mode. "
-                  "DroidDeck cannot verify that this package belongs to your device.\\n\\n"
-                  f"Package: {path}"
-              ),
-              f"SIDELOAD {path.name}",
-              lambda: self.run_adb(
-                  "sideload",
-                  str(path),
-                  destructive=True,
-                  exclusive="adb-sideload",
-              ),
-          )
+    def confirm_adb_sideload(self, path: Path) -> None:
+        typed_confirm(
+            self,
+            "Sideload update package",
+            (
+                "The selected device must already be in recovery sideload mode. "
+                "DroidDeck cannot verify that this package belongs to your device.\\n\\n"
+                f"Package: {path}"
+            ),
+            f"SIDELOAD {path.name}",
+            lambda: self.run_adb(
+                "sideload",
+                str(path),
+                destructive=True,
+                exclusive="adb-sideload",
+            ),
+        )
 
 '''
           if "def choose_adb_sideload" not in text:
