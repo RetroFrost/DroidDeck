@@ -44,6 +44,9 @@ def main() -> int:
                 f"Libadwaita 1.5 or newer is required (missing {required})"
             )
 
+    from .sideload_patch import install as install_sideload
+
+    install_sideload()
     from .app import main as app_main
 
     return app_main()
