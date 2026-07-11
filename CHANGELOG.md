@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-07-11
+
+### ADB sideload
+
+- Added protected ADB sideload ZIP selection and execution to the ADB Tools page.
+- Added exact typed confirmation before a package is sent.
+- Targets only the selected ADB device and blocks overlapping sideload operations.
+- Warns that DroidDeck cannot verify whether a package belongs to the connected device.
+
 ## 0.3.0 — 2026-07-10
 
 ### Urgent ADB detection fix
